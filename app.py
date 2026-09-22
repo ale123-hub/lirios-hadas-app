@@ -5,7 +5,6 @@ st.set_page_config(page_title="Lirios Amarillos y Hadas de Luz", layout="centere
 
 st.markdown("<h1 style='text-align: center;'>✨ Lirios Amarillos y Hadas de Luz</h1>", unsafe_allow_html=True)
 
-# Código HTML5 + Canvas para renderizado web nativo fluido a 60 FPS
 html_code = """
 <!DOCTYPE html>
 <html>
@@ -92,7 +91,6 @@ class Fairy {
         ctx.save();
         ctx.globalAlpha = this.alpha;
         
-        // Resplandor
         let grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 3);
         grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
         grad.addColorStop(0.4, 'rgba(255, 235, 150, 0.8)');
@@ -115,7 +113,6 @@ lilyPositions.forEach(pos => {
 });
 
 function drawMoon() {
-    // Resplandor
     let glow = ctx.createRadialGradient(650, 120, 30, 650, 120, 90);
     glow.addColorStop(0, 'rgba(245, 245, 230, 0.8)');
     glow.addColorStop(1, 'rgba(245, 245, 230, 0)');
@@ -124,7 +121,6 @@ function drawMoon() {
     ctx.arc(650, 120, 90, 0, Math.PI * 2);
     ctx.fill();
 
-    // Luna
     ctx.fillStyle = '#f5f5e6';
     ctx.beginPath();
     ctx.arc(650, 120, 45, 0, Math.PI * 2);
@@ -132,7 +128,6 @@ function drawMoon() {
 }
 
 function drawGrass(time) {
-    // Suelo
     ctx.fillStyle = '#00230a';
     ctx.beginPath();
     ctx.ellipse(400, 600, 500, 100, 0, 0, Math.PI * 2);
@@ -143,7 +138,6 @@ function drawGrass(time) {
     ctx.ellipse(400, 610, 450, 80, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Hebras de césped meciéndose
     grassBlades.forEach((blade, i) => {
         let wind = Math.sin(time * 0.002 + blade.phase) * 6;
         let topX = blade.x + blade.bend * 10 + wind;
@@ -162,7 +156,7 @@ function drawLily(x, baseY, height, scale, time) {
     let flowerTopY = baseY - height;
     let controlX = x + Math.sin(time * 0.001) * 10;
 
-    // Tallo
+    // Tallo curvo meciéndose
     ctx.strokeStyle = '#228b22';
     ctx.lineWidth = Math.max(2, 6 * scale);
     ctx.beginPath();
@@ -170,32 +164,68 @@ function drawLily(x, baseY, height, scale, time) {
     ctx.quadraticCurveTo(controlX, baseY - height / 2, x, flowerTopY);
     ctx.stroke();
 
-    // Pétalos
-    ctx.fillStyle = '#ffd700';
-    ctx.strokeStyle = '#daa520';
+    // Hojas del tallo
+    ctx.strokeStyle = '#004614';
+    ctx.lineWidth = Math.max(1, 4 * scale);
+    
+    ctx.beginPath();
+    ctx.arc(x - 40 * scale, baseY - 80 * scale, 50 * scale, 0, Math.PI / 2);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.arc(x - 10 * scale, baseY - 110 * scale, 50 * scale, Math.PI / 2, Math.PI);
+    ctx.stroke();
+
+    // Pétalos estilo Pygame (Polygon cuadrático)
+    let petalAngleStep = Math.PI / 3;
+    ctx.fillStyle = '#ffd700'; // Amarillo
+    ctx.strokeStyle = '#daa520'; // Borde dorado
     ctx.lineWidth = 1;
 
     for (let i = 0; i < 6; i++) {
-        let angle = i * (Math.PI / 3) - Math.PI / 2;
+        let angle = i * petalAngleStep - Math.PI / 2;
         let px = x + Math.cos(angle) * (45 * scale);
         let py = flowerTopY + Math.sin(angle) * (55 * scale);
 
-        ctx.beginPath();
-        ctx.moveTo(x, flowerTopY);
-        ctx.lineTo(px, py);
-        ctx.stroke();
+        let ctrl1X = x + Math.cos(angle - 0.4) * (25 * scale);
+        let ctrl1Y = flowerTopY + Math.sin(angle - 0.4) * (25 * scale);
+        let ctrl2X = x + Math.cos(angle + 0.4) * (25 * scale);
+        let ctrl2Y = flowerTopY + Math.sin(angle + 0.4) * (25 * scale);
 
         ctx.beginPath();
-        ctx.arc(px, py, 12 * scale, 0, Math.PI * 2);
+        ctx.moveTo(x, flowerTopY);
+        ctx.lineTo(ctrl1X, ctrl1Y);
+        ctx.lineTo(px, py);
+        ctx.lineTo(ctrl2X, ctrl2Y);
+        ctx.closePath();
         ctx.fill();
         ctx.stroke();
     }
 
-    // Centro
+    // Centro del lirio
     ctx.fillStyle = '#ffa500';
     ctx.beginPath();
-    ctx.arc(x, flowerTopY, 8 * scale, 0, Math.PI * 2);
+    ctx.arc(x, flowerTopY, Math.max(3, 8 * scale), 0, Math.PI * 2);
     ctx.fill();
+
+    // Pistilos y anteras
+    for (let i = 0; i < 5; i++) {
+        let stamenAngle = i * (Math.PI / 2.5) - Math.PI / 1.2;
+        let stX = x + Math.cos(stamenAngle) * (18 * scale);
+        let stY = flowerTopY + Math.sin(stamenAngle) * (18 * scale);
+
+        ctx.strokeStyle = '#ffa500';
+        ctx.lineWidth = Math.max(1, 2 * scale);
+        ctx.beginPath();
+        ctx.moveTo(x, flowerTopY);
+        ctx.lineTo(stX, stY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#8b4513';
+        ctx.beginPath();
+        ctx.arc(stX, stY, Math.max(2, 3 * scale), 0, Math.PI * 2);
+        ctx.fill();
+    }
 }
 
 let startTime = Date.now();
@@ -203,11 +233,9 @@ let startTime = Date.now();
 function animate() {
     let time = Date.now() - startTime;
 
-    // Fondo
     ctx.fillStyle = '#0a0f23';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Estrellas
     ctx.fillStyle = '#ffffff';
     stars.forEach(s => {
         ctx.beginPath();
