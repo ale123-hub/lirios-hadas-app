@@ -1,146 +1,239 @@
 import streamlit as st
-import pygame
-import math
-import random
-import time
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Lirios Amarillos y Hadas de Luz", layout="centered")
 
-st.title("🌸 Lirios Amarillos y Hadas de Luz")
-st.write("Animación generada en tiempo real con Pygame y Streamlit.")
+st.markdown("<h1 style='text-align: center;'>✨ Lirios Amarillos y Hadas de Luz</h1>", unsafe_allow_html=True)
 
-# Usar el driver 'dummy' o de memoria para que Pygame funcione en el servidor de Streamlit
-import os
-os.environ["SDL_VIDEODRIVER"] = "dummy"
+# Código HTML5 + Canvas para renderizado web nativo fluido a 60 FPS
+html_code = """
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    body {
+        margin: 0;
+        background-color: #0a0f23;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+    canvas {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+</style>
+</head>
+<body>
+<canvas id="canvas" width="800" height="600"></canvas>
 
-# Inicialización
-pygame.init()
-WIDTH, HEIGHT = 800, 600
-screen = pygame.Surface((WIDTH, HEIGHT))
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
-# Colores
-NIGHT_BLUE = (10, 15, 35)
-MOON_WHITE = (245, 245, 230)
-YELLOW_PETAL = (255, 215, 0)
-YELLOW_CENTER = (255, 165, 0)
-GREEN_STEM = (34, 139, 34)
-DARK_GREEN = (0, 70, 20)
-VERY_DARK_GREEN = (0, 35, 10)
+const WIDTH = 800;
+const HEIGHT = 600;
 
-stars = [(random.randint(0, WIDTH), random.randint(0, 350), random.randint(1, 2)) for _ in range(80)]
-grass_blades = [(x, random.randint(15, 45), random.uniform(-0.3, 0.3), random.uniform(0, math.pi * 2)) for x in range(0, WIDTH, 4)]
+// Estrellas
+const stars = [];
+for(let i = 0; i < 80; i++) {
+    stars.push({
+        x: Math.random() * WIDTH,
+        y: Math.random() * 350,
+        size: Math.random() * 1.5 + 0.5
+    });
+}
 
-class FairyParticle:
-    def __init__(self, x, y):
-        self.base_x = x
-        self.base_y = y
-        self.x = x
-        self.y = y
-        self.size = random.uniform(2, 5)
-        self.speed = random.uniform(0.02, 0.05)
-        self.angle = random.uniform(0, math.pi * 2)
-        self.radius = random.uniform(15, 40)
-        self.alpha = random.randint(150, 255)
+// Césped
+const grassBlades = [];
+for(let x = 0; x < WIDTH; x += 4) {
+    grassBlades.push({
+        x: x,
+        height: Math.random() * 30 + 15,
+        bend: (Math.random() - 0.5) * 0.6,
+        phase: Math.random() * Math.PI * 2
+    });
+}
+
+// Lirios
+const lilyPositions = [
+    [120, 580, 160, 0.75],
+    [220, 585, 210, 0.95],
+    [340, 595, 240, 1.1],
+    [450, 580, 180, 0.85],
+    [560, 600, 260, 1.2],
+    [670, 585, 200, 0.9],
+    [740, 575, 150, 0.7]
+];
+
+// Hadas
+class Fairy {
+    constructor(x, y) {
+        this.baseX = x;
+        this.baseY = y;
+        this.x = x;
+        this.y = y;
+        this.size = Math.random() * 3 + 2;
+        this.speed = Math.random() * 0.03 + 0.02;
+        this.angle = Math.random() * Math.PI * 2;
+        this.radius = Math.random() * 25 + 15;
+        this.alpha = Math.random();
+    }
+
+    update() {
+        this.angle += this.speed;
+        this.x = this.baseX + Math.cos(this.angle) * this.radius + Math.sin(this.angle * 2) * 10;
+        this.y = this.baseY + Math.sin(this.angle) * this.radius + Math.cos(this.angle * 1.5) * 10;
+        this.alpha = 0.5 + 0.5 * Math.sin(this.angle * 3);
+    }
+
+    draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
         
-    def update(self):
-        self.angle += self.speed
-        self.x = self.base_x + math.cos(self.angle) * self.radius + math.sin(self.angle * 2) * 10
-        self.y = self.base_y + math.sin(self.angle) * self.radius + math.cos(self.angle * 1.5) * 10
-        self.alpha = int(180 + 75 * math.sin(self.angle * 3))
+        // Resplandor
+        let grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 3);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        grad.addColorStop(0.4, 'rgba(255, 235, 150, 0.8)');
+        grad.addColorStop(1, 'rgba(255, 235, 150, 0)');
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
 
-    def draw(self, surface):
-        s = pygame.Surface((int(self.size * 4), int(self.size * 4)), pygame.SRCALPHA)
-        pygame.draw.circle(s, (255, 235, 150, max(0, self.alpha // 3)), (int(self.size * 2), int(self.size * 2)), int(self.size * 2))
-        pygame.draw.circle(s, (255, 255, 255, self.alpha), (int(self.size * 2), int(self.size * 2)), int(self.size))
-        surface.blit(s, (int(self.x - self.size * 2), int(self.y - self.size * 2)))
+const fairies = [];
+lilyPositions.forEach(pos => {
+    let flowerTopY = pos[1] - pos[2];
+    for(let i = 0; i < 10; i++) {
+        fairies.push(new Fairy(pos[0] + (Math.random() - 0.5) * 50, flowerTopY + (Math.random() - 0.5) * 50));
+    }
+});
 
-def draw_scene(ticks):
-    screen.fill(NIGHT_BLUE)
-    for sx, sy, ssize in stars:
-        pygame.draw.circle(screen, (255, 255, 255), (sx, sy), ssize)
+function drawMoon() {
+    // Resplandor
+    let glow = ctx.createRadialGradient(650, 120, 30, 650, 120, 90);
+    glow.addColorStop(0, 'rgba(245, 245, 230, 0.8)');
+    glow.addColorStop(1, 'rgba(245, 245, 230, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(650, 120, 90, 0, Math.PI * 2);
+    ctx.fill();
 
-    # Luna
-    for r in range(80, 50, -5):
-        alpha = int(5 * (80 - r))
-        glow_surf = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
-        pygame.draw.circle(glow_surf, (220, 235, 255, alpha), (r, r), r)
-        screen.blit(glow_surf, (650 - r, 120 - r))
-    pygame.draw.circle(screen, MOON_WHITE, (650, 120), 45)
+    // Luna
+    ctx.fillStyle = '#f5f5e6';
+    ctx.beginPath();
+    ctx.arc(650, 120, 45, 0, Math.PI * 2);
+    ctx.fill();
+}
 
-    # Césped
-    time_val = ticks * 0.002
-    pygame.draw.ellipse(screen, VERY_DARK_GREEN, (-100, 500, WIDTH + 200, 200))
-    pygame.draw.ellipse(screen, DARK_GREEN, (-50, 530, WIDTH + 100, 150))
-    for x, height, bend, phase in grass_blades:
-        wind = math.sin(time_val + phase) * 6
-        top_x = x + bend * 10 + wind
-        top_y = HEIGHT - height
-        color = DARK_GREEN if x % 8 == 0 else GREEN_STEM
-        pygame.draw.line(screen, color, (x, HEIGHT), (top_x, top_y), 2)
+function drawGrass(time) {
+    // Suelo
+    ctx.fillStyle = '#00230a';
+    ctx.beginPath();
+    ctx.ellipse(400, 600, 500, 100, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-    # Lirios
-    lily_positions = [
-        (120, 580, 160, 0.75), (220, 585, 210, 0.95), (340, 595, 240, 1.1),
-        (450, 580, 180, 0.85), (560, 600, 260, 1.2), (670, 585, 200, 0.9), (740, 575, 150, 0.7)
-    ]
-    
-    for x, base_y, height, scale in lily_positions:
-        flower_top_y = base_y - height
-        control_x = x + math.sin(ticks * 0.001) * 10
-        points = [(x, base_y), (control_x, base_y - height // 2), (x, flower_top_y)]
-        pygame.draw.lines(screen, GREEN_STEM, False, points, max(2, int(6 * scale)))
+    ctx.fillStyle = '#004614';
+    ctx.beginPath();
+    ctx.ellipse(400, 610, 450, 80, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-        pygame.draw.arc(screen, DARK_GREEN, (x - 40 * scale, base_y - 80 * scale, 50 * scale, 80 * scale), 0, math.pi/2, max(1, int(4 * scale)))
-        pygame.draw.arc(screen, DARK_GREEN, (x - 10 * scale, base_y - 110 * scale, 50 * scale, 80 * scale), math.pi/2, math.pi, max(1, int(4 * scale)))
+    // Hebras de césped meciéndose
+    grassBlades.forEach((blade, i) => {
+        let wind = Math.sin(time * 0.002 + blade.phase) * 6;
+        let topX = blade.x + blade.bend * 10 + wind;
+        let topY = HEIGHT - blade.height;
 
-        petal_angle_step = math.pi / 3
-        for i in range(6):
-            angle = i * petal_angle_step - math.pi / 2
-            p_x = x + math.cos(angle) * (45 * scale)
-            p_y = flower_top_y + math.sin(angle) * (55 * scale)
-            ctrl1_x = x + math.cos(angle - 0.4) * (25 * scale)
-            ctrl1_y = flower_top_y + math.sin(angle - 0.4) * (25 * scale)
-            ctrl2_x = x + math.cos(angle + 0.4) * (25 * scale)
-            ctrl2_y = flower_top_y + math.sin(angle + 0.4) * (25 * scale)
-            petal_points = [(x, flower_top_y), (ctrl1_x, ctrl1_y), (p_x, p_y), (ctrl2_x, ctrl2_y)]
-            pygame.draw.polygon(screen, YELLOW_PETAL, petal_points)
-            pygame.draw.polygon(screen, (218, 165, 32), petal_points, 1)
+        ctx.strokeStyle = (i % 2 === 0) ? '#228b22' : '#004614';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(blade.x, HEIGHT);
+        ctx.lineTo(topX, topY);
+        ctx.stroke();
+    });
+}
 
-        pygame.draw.circle(screen, YELLOW_CENTER, (int(x), int(flower_top_y)), max(3, int(8 * scale)))
-        for i in range(5):
-            stamen_angle = i * (math.pi / 2.5) - math.pi / 1.2
-            st_x = x + math.cos(stamen_angle) * (18 * scale)
-            st_y = flower_top_y + math.sin(stamen_angle) * (18 * scale)
-            pygame.draw.line(screen, YELLOW_CENTER, (x, flower_top_y), (st_x, st_y), max(1, int(2 * scale)))
-            pygame.draw.circle(screen, (139, 69, 19), (int(st_x), int(st_y)), max(2, int(3 * scale)))
+function drawLily(x, baseY, height, scale, time) {
+    let flowerTopY = baseY - height;
+    let controlX = x + Math.sin(time * 0.001) * 10;
 
-    # Partículas
-    if 'fairies' not in st.session_state:
-        st.session_state.fairies = []
-        for x, b_y, h, sc in lily_positions:
-            f_y = b_y - h
-            for _ in range(10):
-                st.session_state.fairies.append(FairyParticle(x + random.randint(-25, 25), f_y + random.randint(-25, 25)))
+    // Tallo
+    ctx.strokeStyle = '#228b22';
+    ctx.lineWidth = Math.max(2, 6 * scale);
+    ctx.beginPath();
+    ctx.moveTo(x, baseY);
+    ctx.quadraticCurveTo(controlX, baseY - height / 2, x, flowerTopY);
+    ctx.stroke();
 
-    for fairy in st.session_state.fairies:
-        fairy.update()
-        fairy.draw(screen)
+    // Pétalos
+    ctx.fillStyle = '#ffd700';
+    ctx.strokeStyle = '#daa520';
+    ctx.lineWidth = 1;
 
-# Mostrar la animación en Streamlit
-frame_placeholder = st.empty()
-start_time = time.time()
+    for (let i = 0; i < 6; i++) {
+        let angle = i * (Math.PI / 3) - Math.PI / 2;
+        let px = x + Math.cos(angle) * (45 * scale);
+        let py = flowerTopY + Math.sin(angle) * (55 * scale);
 
-# Botón para reproducir la animación
-if st.button("Reanimar / Actualizar"):
-    st.rerun()
+        ctx.beginPath();
+        ctx.moveTo(x, flowerTopY);
+        ctx.lineTo(px, py);
+        ctx.stroke();
 
-# Bucle de fotogramas para animación en vivo
-for frame in range(100):
-    current_ticks = int((time.time() - start_time) * 1000)
-    draw_scene(current_ticks)
-    
-    # Convertir Pygame surface a arreglo de imagen para Streamlit
-    view = pygame.surfarray.array3d(screen)
-    view = view.transpose([1, 0, 2])
-    frame_placeholder.image(view, use_container_width=True)
-    time.sleep(0.03)
+        ctx.beginPath();
+        ctx.arc(px, py, 12 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    // Centro
+    ctx.fillStyle = '#ffa500';
+    ctx.beginPath();
+    ctx.arc(x, flowerTopY, 8 * scale, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+let startTime = Date.now();
+
+function animate() {
+    let time = Date.now() - startTime;
+
+    // Fondo
+    ctx.fillStyle = '#0a0f23';
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+    // Estrellas
+    ctx.fillStyle = '#ffffff';
+    stars.forEach(s => {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    drawMoon();
+    drawGrass(time);
+
+    lilyPositions.forEach(pos => {
+        drawLily(pos[0], pos[1], pos[2], pos[3], time);
+    });
+
+    fairies.forEach(f => {
+        f.update();
+        f.draw();
+    });
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>
+"""
+
+components.html(html_code, height=620)
